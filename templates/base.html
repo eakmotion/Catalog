@@ -10,9 +10,11 @@
     <nav class="navbar navbar-dark bg-inverse">
       <a class="navbar-brand" href="/">Catalog</a>
       <div id="navbar">
-        <span class="btn btn-primary float-xs-right">
-          Login
-        </span>
+        {% if 'username' not in session %}
+          <a class="btn btn-primary float-xs-right" href="{{url_for('Login')}}">Login</a>
+        {% else %}
+          <a class="btn btn-primary float-xs-right" href="{{url_for('Logout')}}">Logout</a>
+        {% endif %}
       </div>
     </nav>
 

@@ -1,2 +1,5 @@
 # .pyc files
 *.pyc
+
+# secret ids
+client_secrets.json
