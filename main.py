@@ -1,7 +1,19 @@
 from flask import Flask
+from sqlalchemy import create_engine, asc, desc
+from sqlalchemy.orm import sessionmaker
+from database_setup import User, Base, Category, Item
+
+
 app = Flask(__name__)
 
 from flask import render_template
+
+# Connect to Database and create database session
+engine = create_engine('sqlite:///catalog.db')
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+session = DBSession()
 
 def require_authorization(func):
     return 'authorized'
@@ -9,16 +21,10 @@ def require_authorization(func):
 @app.route('/')
 @app.route('/category')
 def main_page():
-    return render_template('base.html')
-
-@app.route('/order')
-def order_page():
-    our_fruits = ['Apple', 'Lemon', 'Orange']
-    return render_template('order.html', foods = our_fruits)
-
-@app.route('/about')
-def about_page():
-    return 'About Page'
+    categories = session.query(Category)
+    recent_items = session.query(Item)
+    return render_template('main.html',
+                           categories=categories, items=recent_items)
 
 @app.route('/login')
 def showLogin():
@@ -61,11 +67,22 @@ def delete_category_item(category_name, item_name):
 
 @app.route('/catalog/<string:category_name>/items')
 def show_items(category_name):
-    return category_name
+    categories = session.query(Category).order_by(asc(Category.name))
+    selected_category = session.query(Category).filter_by(
+        name=category_name).one()
+    return render_template('main.html', categories=categories,
+                           category=selected_category)
 
 @app.route('/catalog/<string:category_name>/<string:item_name>')
 def view_category_item(category_name, item_name):
-    return item_name
+    try:
+        selected_item = session.query(Item).join(Category).filter(
+            Item.name == item_name).filter(
+            Category.name == category_name).one()
+        return render_template('item.html',
+                               item = selected_item)
+    except:
+        return 'Error'
 
 @app.route('/catalog.json')
 def items_json():

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-3">
+          <ul class="list-group">
+            {% for category in categories %}
+              <li class="list-group-item">
+                <a href="{{ url_for('show_items',category_name=category.name) }}">{{ category.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col-md-9">
+          {% if category %}
+            {{ category.name }} ({{ category.items|length }} items)
+            <ul class="nav nav-sidebar">
+              {% for item in category.items %}
+                <li>
+                  <a href="{{ url_for('view_category_item',category_name=category.name,item_name=item.name) }}">{{ item.name }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+
+          {% else %}
+
+            {% for item in items %}
+              <ul class="nav nav-sidebar">
+                <li>
+                  <a href="{{ url_for('view_category_item',category_name=item.category.name,item_name=item.name) }}">{{ item.name }}</a>
+                </li>
+              </ul>
+            {% endfor %}
+          {% endif %}
+        </div>
+    </div>
+
+{% endblock %}
