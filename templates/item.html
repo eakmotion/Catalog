@@ -1,11 +1,39 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-  <div class="card card-block">
+  <div class="card card-block item">
     <h4 class="card-title">{{ item.name }}</h4>
-    <p class="card-text">{{ item.description }}</p>
-    <a href="#" class="card-link">Price</a>
+    <span class="float-xs-right">
+      {% if session['user_id'] == item.user.id %}
+        <a href="{{ url_for('edit_category_item',
+          category_name=item.category.name,item_name=item.name) }}">Edit</a> |
+        <a href="{{ url_for('delete_category_item',
+          category_name=item.category.name,item_name=item.name) }}">Delete</a>
+      {% endif %}
+    </span>
+    <div class="row">
+      <div class="col-md-5">
+        <span class="item-picture">
+          {% if item.picture %}
+            <img src="{{ item.picture }}" class="rounded img-thumbnail"
+              alt="{{ item.name }}">
+          {% else %}
+            <img src="{{ url_for('static', filename='no_image.png') }}"
+              class="rounded img-thumbnail" alt="no-picture">
+          {% endif %}
+        </span>
+      </div>
+      <div class="col-md-7">
+        <p class="card-text">{{ item.description }}</p>
+        {% if item.price %}
+          <p>
+            <span class="tag tag-pill tag-primary">
+              Price: {{ item.price }} $
+            </span>
+          </p>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
 {% endblock %}

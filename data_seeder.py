@@ -19,7 +19,9 @@ session.add(cat1)
 session.commit()
 
 item1 = Item(name="Baseball bat",
-             description="A baseball bat is a smooth wooden or metal club used in the sport of baseball to hit the ball after it is thrown by the pitcher.",
+             description="A baseball",
+             price="100",
+             picture="https://www.baseballsavings.com/wcsstore/CatalogAssetStore/Attachment/images/products/baseball/P101443/1-z.jpg"
              category=cat1, user=user1)
 session.add(item1)
 session.commit()
@@ -30,6 +32,8 @@ session.commit()
 
 item2 = Item(name="Football",
              description="A large premium footbal.",
+             price="59",
+             picture="https://n2.sdlcdn.com/imgs/b/e/o/Nike-Football-SDL771347869-1-56a7c.jpg"
              category=cat2, user=user1)
 session.add(item2)
 session.commit()

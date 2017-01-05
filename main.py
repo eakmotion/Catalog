@@ -1,21 +1,18 @@
-from flask import Flask, session, request, flash, make_response, redirect, url_for
+from flask import Flask, request, flash, make_response, redirect, url_for, \
+                  jsonify, render_template
+from flask import session as login_session
 from sqlalchemy import create_engine, asc, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import User, Base, Category, Item
+from oauth2client.client import flow_from_clientsecrets
+from oauth2client.client import FlowExchangeError
 import json
 import random
 import string
-from flask import session as login_session
 import requests
-
-from oauth2client.client import flow_from_clientsecrets
-from oauth2client.client import FlowExchangeError
 import httplib2
 
-
 app = Flask(__name__)
-
-from flask import render_template
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
@@ -34,28 +31,26 @@ def require_authorization(func):
 @app.route('/')
 @app.route('/category')
 def main_page():
-    categories = session.query(Category)
-    recent_items = session.query(Item)
+    categories = session.query(Category).order_by(Category.name)
+    recent_items = session.query(Item).order_by(
+                   desc(Item.created_date)).limit(10)
     return render_template('main.html',
-                           categories=categories, items=recent_items)
+                            categories=categories, items=recent_items)
 
 @app.route('/login')
-def Login():
+def login():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     login_session['state'] = state
     return render_template('login.html', STATE=state)
 
 @app.route('/logout')
-def Logout():
+def logout():
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
             gdisconnect()
             del login_session['gplus_id']
             del login_session['credentials']
-        if login_session['provider'] == 'facebook':
-            fbdisconnect()
-            del login_session['facebook_id']
         del login_session['username']
         del login_session['email']
         del login_session['picture']
@@ -65,16 +60,7 @@ def Logout():
         return redirect(url_for('main_page'))
     else:
         flash("You were not logged in")
-        return redirect(url_for('Login'))
-
-
-@app.route('/fbconnect', methods=['POST'])
-def fbconnect():
-    return 'FB connect'
-
-@app.route('/fbdisconnect')
-def fbdisconnect():
-    return 'FB disconnect'
+        return redirect(url_for('login'))
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -186,25 +172,69 @@ def gdisconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
-
-@app.route('/disconnect')
-def disconnect():
-    return 'Disconnect'
-
 @app.route('/catalog/item/new', methods=['GET', 'POST'])
-# @require_authorization
 def new_category_item():
-    return 'new item'
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        newItem = Item(name=request.form['name'],
+                       description=request.form['description'],
+                       price=request.form['price'],
+                       category_id=request.form['category'],
+                       picture=request.form['picture'],
+                       user_id=login_session['user_id'])
+        session.add(newItem)
+        session.commit()
+        category_id = request.form['category']
+        category = session.query(Category).filter_by(id=category_id).one()
+        return redirect(url_for('view_category_item',
+                                category_name=newItem.category.name,
+                                item_name=newItem.name))
+    else:
+        categories = session.query(Category)
+        return render_template('new_item.html', categories=categories)
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/edit', methods=['GET', 'POST'])
-# @require_authorization
+@app.route('/catalog/<string:category_name>/<string:item_name>/edit',
+           methods=['GET', 'POST'])
 def edit_category_item(category_name, item_name):
-    return 'edit item'
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    itemToEdit = session.query(Item).filter_by(name=item_name).one()
+    cat = session.query(Category).filter_by(name=category_name).one()
+    categories = session.query(Category).all()
+    if login_session['user_id'] != itemToEdit.user.id:
+        return redirect(url_for('main_page'))
+    if request.method == 'POST':
+        itemToEdit.name = request.form['name']
+        itemToEdit.description = request.form['description']
+        itemToEdit.price = request.form['price']
+        itemToEdit.category_id = request.form['category']
+        session.merge(itemToEdit)
+        session.commit()
+        return redirect(url_for('view_category_item',
+                                category_name=itemToEdit.category.name,
+                                item_name=itemToEdit.name))
+    else:
+        return render_template('edit_item.html',
+                               categories=categories,
+                               item=itemToEdit)
 
-@app.route('/catalog/<string:category_name>/<string:item_name>/delete', methods=['GET', 'POST'])
-# @require_authorization
+@app.route('/catalog/<string:category_name>/<string:item_name>/delete',
+           methods=['GET', 'POST'])
 def delete_category_item(category_name, item_name):
-    return 'deleted item'
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    itemToDelete = session.query(Item).filter_by(name=item_name).one()
+    cat = session.query(Category).filter_by(
+          name=itemToDelete.category.name).one()
+    if login_session['user_id'] != itemToDelete.user.id:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        session.delete(itemToDelete)
+        session.commit()
+        return redirect(url_for('main_page'))
+    else:
+        return render_template('delete_item.html', item=itemToDelete)
 
 @app.route('/catalog/<string:category_name>/items')
 def show_items(category_name):
@@ -216,18 +246,15 @@ def show_items(category_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>')
 def view_category_item(category_name, item_name):
-    try:
-        selected_item = session.query(Item).join(Category).filter(
-            Item.name == item_name).filter(
-            Category.name == category_name).one()
-        return render_template('item.html',
-                               item = selected_item)
-    except:
-        return 'Error'
+    selected_item = session.query(Item).join(Category).filter(
+                    Item.name == item_name).filter(
+                    Category.name == category_name).one()
+    return render_template('item.html', item = selected_item)
 
 @app.route('/catalog.json')
 def items_json():
-    return 'Json API'
+    categories = session.query(Category).all()
+    return jsonify(Category=[i.serialize for i in categories])
 
 def getUserID(email):
     try:

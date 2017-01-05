@@ -5,7 +5,6 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
-
 class User(Base):
     __tablename__ = 'user'
 
@@ -61,8 +60,5 @@ class Item(Base):
             'category_id': self.category_id
         }
 
-
 engine = create_engine('sqlite:///catalog.db')
-
-
 Base.metadata.create_all(engine)

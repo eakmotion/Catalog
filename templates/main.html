@@ -1,32 +1,51 @@
 {% extends "base.html" %}
 {% block content %}
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-md-3 custom-column">
+          <h2>Categories</h2>
           <ul class="list-group">
             {% for category in categories %}
               <li class="list-group-item">
-                <a href="{{ url_for('show_items',category_name=category.name) }}">{{ category.name }}</a>
+                <span class="tag tag-default tag-pill float-xs-right">
+                  {{ category.items|length }}
+                </span>
+                <a href="{{ url_for('show_items',
+                  category_name=category.name) }}">{{ category.name }}</a>
               </li>
             {% endfor %}
+            <li class="list-group-item">
+              <a href="/">All items</a>
+            </li>
           </ul>
         </div>
-        <div class="col-md-9">
+        <div class="col-md-9 custom-column">
           {% if category %}
-            {{ category.name }} ({{ category.items|length }} items)
+            <h2>
+              {{ category.name }} Items ({{ category.items|length }} items)
+            </h2>
             <ul class="nav nav-sidebar">
               {% for item in category.items %}
                 <li>
-                  <a href="{{ url_for('view_category_item',category_name=category.name,item_name=item.name) }}">{{ item.name }}</a>
+                  <a href="{{ url_for('view_category_item',
+                    category_name=category.name,item_name=item.name) }}">
+                    {{ item.name }}
+                  </a>
                 </li>
               {% endfor %}
             </ul>
 
           {% else %}
-
+            <h2>Latest items</h2>
             {% for item in items %}
-              <ul class="nav nav-sidebar">
+              <ul class="nav nav-sidebar latest-items">
                 <li>
-                  <a href="{{ url_for('view_category_item',category_name=item.category.name,item_name=item.name) }}">{{ item.name }}</a>
+                  <a href="{{ url_for('view_category_item',
+                    category_name=item.category.name,item_name=item.name) }}">
+                    {{ item.name }}
+                  </a>
+                  <span class="tag tag-default tag-pill">
+                    {{ item.category.name }}
+                  </span>
                 </li>
               </ul>
             {% endfor %}
