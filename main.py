@@ -11,6 +11,7 @@ import random
 import string
 import requests
 import httplib2
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -25,8 +26,29 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
-def require_authorization(func):
-    return 'authorized'
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'email' not in login_session:
+            flash("You are not allowed to access there")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def getUserID(email):
+    try:
+        user = session.query(User).filter_by(email=email).one()
+        return user.id
+    except:
+        return None
+
+def createUser(login_session):
+    newUser = User(name=login_session['username'], email=login_session[
+                   'email'], picture=login_session['picture'])
+    session.add(newUser)
+    session.commit()
+    user = session.query(User).filter_by(email=login_session['email']).one()
+    return user.id
 
 @app.route('/')
 @app.route('/category')
@@ -173,9 +195,8 @@ def gdisconnect():
         return response
 
 @app.route('/catalog/item/new', methods=['GET', 'POST'])
+@login_required
 def new_category_item():
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
     if request.method == 'POST':
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
@@ -196,9 +217,8 @@ def new_category_item():
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit',
            methods=['GET', 'POST'])
+@login_required
 def edit_category_item(category_name, item_name):
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
     itemToEdit = session.query(Item).filter_by(name=item_name).one()
     cat = session.query(Category).filter_by(name=category_name).one()
     categories = session.query(Category).all()
@@ -221,17 +241,17 @@ def edit_category_item(category_name, item_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete',
            methods=['GET', 'POST'])
+@login_required
 def delete_category_item(category_name, item_name):
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
     itemToDelete = session.query(Item).filter_by(name=item_name).one()
     cat = session.query(Category).filter_by(
           name=itemToDelete.category.name).one()
     if login_session['user_id'] != itemToDelete.user.id:
-        return redirect(url_for('login'))
+        return redirect(url_for('main_page'))
     if request.method == 'POST':
         session.delete(itemToDelete)
         session.commit()
+        flash("Your item has been deleted")
         return redirect(url_for('main_page'))
     else:
         return render_template('delete_item.html', item=itemToDelete)
@@ -255,21 +275,6 @@ def view_category_item(category_name, item_name):
 def items_json():
     categories = session.query(Category).all()
     return jsonify(Category=[i.serialize for i in categories])
-
-def getUserID(email):
-    try:
-        user = session.query(User).filter_by(email=email).one()
-        return user.id
-    except:
-        return None
-
-def createUser(login_session):
-    newUser = User(name=login_session['username'], email=login_session[
-                   'email'], picture=login_session['picture'])
-    session.add(newUser)
-    session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
-    return user.id
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
