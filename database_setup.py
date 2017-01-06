@@ -7,6 +7,7 @@ Base = declarative_base()
 
 
 class User(Base):
+    """ Docstring for User """
     __tablename__ = 'user'
 
     id = Column(Integer, primary_key=True)
@@ -16,6 +17,7 @@ class User(Base):
 
 
 class Category(Base):
+    """ Docstring for Category """
     __tablename__ = 'category'
 
     id = Column(Integer, primary_key=True)
@@ -26,7 +28,7 @@ class Category(Base):
 
     @property
     def serialize(self):
-        """Return object data in easily serializeable format"""
+        """ Return object data in easily serializeable format """
         return {
             'name': self.name,
             'id': self.id,
@@ -35,6 +37,7 @@ class Category(Base):
 
 
 class Item(Base):
+    """ Docstring for Item """
     __tablename__ = 'item'
 
     id = Column(Integer, primary_key=True)

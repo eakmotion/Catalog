@@ -57,7 +57,9 @@ def createUser(login_session):
 @app.route('/')
 @app.route('/category')
 def main_page():
+    """ Show main page """
     categories = session.query(Category).order_by(Category.name)
+    # Show the 10 newest items
     recent_items = session.query(Item).order_by(
                    desc(Item.created_date)).limit(10)
     return render_template('main.html',
@@ -66,6 +68,8 @@ def main_page():
 
 @app.route('/login')
 def login():
+    """ Show login page """
+    # Creates anti-forgery state
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))
     login_session['state'] = state
@@ -74,7 +78,9 @@ def login():
 
 @app.route('/logout')
 def logout():
+    """ Handles the logout cleanup for users's session """
     if 'provider' in login_session:
+        # Disconnect based on provider.
         if login_session['provider'] == 'google':
             gdisconnect()
             del login_session['gplus_id']
@@ -209,7 +215,12 @@ def gdisconnect():
 @app.route('/catalog/item/new', methods=['GET', 'POST'])
 @login_required
 def new_category_item():
+    """
+    Create item based on data from POST request's form
+    or show page to create item from GET request.
+    """
     if request.method == 'POST':
+        # Create new item
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
                        price=request.form['price'],
@@ -232,12 +243,17 @@ def new_category_item():
            methods=['GET', 'POST'])
 @login_required
 def edit_category_item(category_name, item_name):
+    """
+    Show edit page to edit item from GET request
+    or update item based on data from POST request's form.
+    """
     itemToEdit = session.query(Item).filter_by(name=item_name).one()
     cat = session.query(Category).filter_by(name=category_name).one()
     categories = session.query(Category).all()
     if login_session['user_id'] != itemToEdit.user.id:
         return redirect(url_for('main_page'))
     if request.method == 'POST':
+        # Update seleted item
         itemToEdit.name = request.form['name']
         itemToEdit.description = request.form['description']
         itemToEdit.price = request.form['price']
@@ -257,12 +273,17 @@ def edit_category_item(category_name, item_name):
            methods=['GET', 'POST'])
 @login_required
 def delete_category_item(category_name, item_name):
+    """
+    Show delete confirmation page from GET request
+    or delete seleted item from POST request's form.
+    """
     itemToDelete = session.query(Item).filter_by(name=item_name).one()
     cat = session.query(Category).filter_by(
           name=itemToDelete.category.name).one()
     if login_session['user_id'] != itemToDelete.user.id:
         return redirect(url_for('main_page'))
     if request.method == 'POST':
+        # Delete seleted item
         session.delete(itemToDelete)
         session.commit()
         flash("Your item has been deleted")
@@ -273,6 +294,7 @@ def delete_category_item(category_name, item_name):
 
 @app.route('/catalog/<string:category_name>/items')
 def show_items(category_name):
+    """ Show main page and display items from chosen category """
     categories = session.query(Category).order_by(asc(Category.name))
     selected_category = session.query(Category).filter_by(
         name=category_name).one()
@@ -282,6 +304,7 @@ def show_items(category_name):
 
 @app.route('/catalog/<string:category_name>/<string:item_name>')
 def view_category_item(category_name, item_name):
+    """ Show item page """
     selected_item = session.query(Item).join(Category).filter(
         Item.name == item_name).filter(
         Category.name == category_name).one()
