@@ -15,7 +15,7 @@
       <div class="container">
         <a class="navbar-brand" href="/">Catalog App</a>
         <div id="navbar">
-          {% if 'username' not in session %}
+          {% if 'email' not in session %}
             <a class="btn btn-primary float-xs-right"
               href="{{url_for('login')}}">Login</a>
           {% else %}
@@ -29,6 +29,16 @@
       </div>
     </nav>
     <div class="container">
+      {% with messages = get_flashed_messages() %}
+          {% if messages %}
+              {% for message in messages %}
+                  <div class="alert alert-warning">
+                    {{ message }}
+                  </div>
+              {% endfor %}
+          {% endif %}
+      {% endwith %}
+
       {% block content %}
       {% endblock content %}
     </div>
