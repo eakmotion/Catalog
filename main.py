@@ -272,11 +272,23 @@ def view_category_item(category_name, item_name):
     return render_template('item.html', item = selected_item)
 
 @app.route('/catalog.json')
-def items_json():
+def catalog_json():
+    """ JSON APIs to view Catalog Information. """
     categories = session.query(Category).all()
     return jsonify(Category=[i.serialize for i in categories])
 
+@app.route('/category/<int:category_id>.json')
+def category_json(category_id):
+    """ JSON APIs to view items in a single category """
+    category = session.query(Category).filter_by(id=category_id).one()
+    return jsonify(Category=category.serialize)
+
+@app.route('/item/<int:item_id>.json')
+def item_json(item_id):
+    """ JSON APIs to view a single item """
+    item = session.query(Item).filter_by(id=item_id).one()
+    return jsonify(item=item.serialize)
+
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
-    app.debug = True
     app.run(host='0.0.0.0')
