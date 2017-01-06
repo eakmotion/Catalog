@@ -5,6 +5,7 @@ from sqlalchemy import create_engine
 
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = 'user'
 
@@ -29,7 +30,7 @@ class Category(Base):
         return {
             'name': self.name,
             'id': self.id,
-            'items': [ i.serialize for i in self.items ]
+            'items': [i.serialize for i in self.items]
         }
 
 

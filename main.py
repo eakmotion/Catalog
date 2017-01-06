@@ -26,6 +26,7 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -35,12 +36,14 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 def getUserID(email):
     try:
         user = session.query(User).filter_by(email=email).one()
         return user.id
     except:
         return None
+
 
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session[
@@ -50,6 +53,7 @@ def createUser(login_session):
     user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
+
 @app.route('/')
 @app.route('/category')
 def main_page():
@@ -57,7 +61,8 @@ def main_page():
     recent_items = session.query(Item).order_by(
                    desc(Item.created_date)).limit(10)
     return render_template('main.html',
-                            categories=categories, items=recent_items)
+                           categories=categories, items=recent_items)
+
 
 @app.route('/login')
 def login():
@@ -65,6 +70,7 @@ def login():
                     for x in xrange(32))
     login_session['state'] = state
     return render_template('login.html', STATE=state)
+
 
 @app.route('/logout')
 def logout():
@@ -83,6 +89,7 @@ def logout():
     else:
         flash("You were not logged in")
         return redirect(url_for('login'))
+
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
@@ -136,8 +143,8 @@ def gconnect():
     stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
-                                 200)
+        response = make_response(
+                   json.dumps('Current user is already connected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -170,10 +177,14 @@ def gconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += """
+              " style = "width: 300px; height: 300px;border-radius: 150px;
+              -webkit-border-radius: 150px;-moz-border-radius: 150px;">
+              """
     flash("you are now logged in as %s" % login_session['username'])
     print "done!"
     return output
+
 
 @app.route('/gdisconnect')
 def gdisconnect():
@@ -193,6 +204,7 @@ def gdisconnect():
             json.dumps('Failed to revoke token for given user.', 400))
         response.headers['Content-Type'] = 'application/json'
         return response
+
 
 @app.route('/catalog/item/new', methods=['GET', 'POST'])
 @login_required
@@ -214,6 +226,7 @@ def new_category_item():
     else:
         categories = session.query(Category)
         return render_template('new_item.html', categories=categories)
+
 
 @app.route('/catalog/<string:category_name>/<string:item_name>/edit',
            methods=['GET', 'POST'])
@@ -239,6 +252,7 @@ def edit_category_item(category_name, item_name):
                                categories=categories,
                                item=itemToEdit)
 
+
 @app.route('/catalog/<string:category_name>/<string:item_name>/delete',
            methods=['GET', 'POST'])
 @login_required
@@ -256,6 +270,7 @@ def delete_category_item(category_name, item_name):
     else:
         return render_template('delete_item.html', item=itemToDelete)
 
+
 @app.route('/catalog/<string:category_name>/items')
 def show_items(category_name):
     categories = session.query(Category).order_by(asc(Category.name))
@@ -264,12 +279,14 @@ def show_items(category_name):
     return render_template('main.html', categories=categories,
                            category=selected_category)
 
+
 @app.route('/catalog/<string:category_name>/<string:item_name>')
 def view_category_item(category_name, item_name):
     selected_item = session.query(Item).join(Category).filter(
-                    Item.name == item_name).filter(
-                    Category.name == category_name).one()
+        Item.name == item_name).filter(
+        Category.name == category_name).one()
     return render_template('item.html', item = selected_item)
+
 
 @app.route('/catalog.json')
 def catalog_json():
@@ -277,17 +294,20 @@ def catalog_json():
     categories = session.query(Category).all()
     return jsonify(Category=[i.serialize for i in categories])
 
+
 @app.route('/category/<int:category_id>.json')
 def category_json(category_id):
     """ JSON APIs to view items in a single category """
     category = session.query(Category).filter_by(id=category_id).one()
     return jsonify(Category=category.serialize)
 
+
 @app.route('/item/<int:item_id>.json')
 def item_json(item_id):
     """ JSON APIs to view a single item """
     item = session.query(Item).filter_by(id=item_id).one()
     return jsonify(item=item.serialize)
+
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
